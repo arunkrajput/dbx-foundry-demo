@@ -1,0 +1,11 @@
+branch_code,branch_name,region,state,active,effective_from
+KL01,Jalan Tun Razak,Central,Kuala Lumpur,true,2026-10-03
+KL02,Bangsar,Central,Kuala Lumpur,true,2026-10-03
+PJ01,Petaling Jaya,Central,Selangor,true,2026-10-03
+PG01,George Town,Northern,Penang,true,2026-10-03
+IP01,Ipoh,Northern,Perak,true,2026-10-03
+JB01,Johor Bahru,Southern,Johor,true,2026-10-03
+ML01,Melaka,Southern,Melaka,true,2026-10-03
+KT01,Kuala Terengganu,East Coast,Terengganu,true,2026-10-03
+KK01,Kota Kinabalu,East Malaysia,Sabah,true,2026-10-03
+KC01,Kuching,East Malaysia,Sarawak,true,2026-10-03

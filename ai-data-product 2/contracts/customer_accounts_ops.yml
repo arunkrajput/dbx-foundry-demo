@@ -1,0 +1,49 @@
+# BRONZE · OPERATIONAL data product
+# Latest state of every account exactly as received from core banking, available minutes after the drop.
+# Values stay as received (STRING); rows that break the rules are FLAGGED (_dq_status, _dq_errors), not hidden,
+# so operations teams see source problems immediately. Only rows with no key are quarantined.
+product:
+  id: retail_banking.customer_accounts_ops
+  name: customer_accounts_ops
+  domain: retail_banking
+  layer: bronze
+  product_type: operational
+  version: 1.0.0
+  status: active
+  owner: retail-data-team@bank.example
+  description: >
+    Operational view of retail deposit accounts as received from the on-prem core banking extract,
+    one row per account, latest file wins. Values are unvalidated strings; check _dq_status before use.
+  upstreams: [onprem.core_banking.accounts_extract]
+  inputs: []
+
+source:
+  landing_path: /Volumes/dp_dev/staging/landing/customer_accounts/
+  format: csv
+  file_pattern: "customer_accounts_*.csv"
+
+output:
+  table: dp_dev.bronze.customer_accounts_ops
+  raw_table: dp_dev.bronze.customer_accounts_raw     # append-only audit trail, not exposed
+  primary_key: account_id
+  storage: as_received                                # all columns STRING
+
+sla:
+  freshness_hours: 24
+  min_valid_ratio: 0.80        # operational tolerance is lower: flagged rows are still visible
+
+schema:                        # column order must match the CSV column order
+  - {name: account_id, type: STRING, required: true, filterable: true, description: Unique account identifier}
+  - {name: customer_name, type: STRING, required: true, pii: true, description: Full legal name of the primary account holder}
+  - {name: ic_number, type: STRING, required: true, pii: true, pattern: '^\d{6}-\d{2}-\d{4}$', description: Malaysian NRIC number}
+  - {name: segment, type: STRING, required: true, filterable: true, allowed_values: [mass, affluent, private], description: "Customer segment: mass, affluent or private"}
+  - {name: branch_code, type: STRING, filterable: true, pattern: '^[A-Z]{2}\d{2}$', description: Home branch code as sent by source}
+  - {name: account_open_date, type: DATE, description: Account opening date as sent (expected YYYY-MM-DD)}
+  - {name: balance_myr, type: "DECIMAL(18,2)", min: 0, description: End-of-day ledger balance in MYR as sent}
+
+agent:
+  max_rows: 50
+  allowed_aggregations: [count]
+  usage: >
+    Use for "what did source send / which records have data issues / latest status" questions.
+    Not for financial figures; use the gold product instead.

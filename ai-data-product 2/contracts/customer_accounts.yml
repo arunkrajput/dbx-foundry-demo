@@ -1,0 +1,46 @@
+# GOLD · CONSUMER-ALIGNED data product (the AI-ready one)
+# Built FROM the operational product + the reference product: only rows that pass every rule,
+# typed, conformed to valid branch codes and enriched with branch name and region.
+product:
+  id: retail_banking.customer_accounts
+  name: customer_accounts
+  domain: retail_banking
+  layer: gold
+  product_type: consumer_aligned
+  version: 2.0.0               # major bump: built from bronze + silver, new columns
+  status: active
+  owner: retail-data-team@bank.example
+  description: >
+    Validated retail deposit accounts enriched with branch name and region. One row per account.
+    The trusted source for counts, balances and segment or regional analysis.
+  upstreams: [retail_banking.customer_accounts_ops, reference.ref_branch]
+  inputs: [retail_banking.customer_accounts_ops, reference.ref_branch]   # health depends on these
+
+output:
+  table: dp_dev.gold.customer_accounts
+  primary_key: account_id
+  storage: typed
+
+sla:
+  freshness_hours: 24
+  min_valid_ratio: 0.95
+
+references:                    # referential integrity checked at build time
+  - {column: branch_code, product: reference.ref_branch, key: branch_code}
+
+schema:
+  - {name: account_id, type: STRING, required: true, filterable: true, description: Unique account identifier}
+  - {name: customer_name, type: STRING, required: true, pii: true, description: Full legal name of the primary account holder}
+  - {name: ic_number, type: STRING, required: true, pii: true, description: Malaysian NRIC number (masked unless caller is in KYC ops)}
+  - {name: segment, type: STRING, required: true, filterable: true, allowed_values: [mass, affluent, private], description: "Customer segment: mass, affluent or private"}
+  - {name: branch_code, type: STRING, required: true, filterable: true, description: Home branch code (always a valid ref_branch code)}
+  - {name: branch_name, type: STRING, description: Home branch name from ref_branch}
+  - {name: region, type: STRING, filterable: true, description: Business region of the home branch}
+  - {name: account_open_date, type: DATE, description: Date the account was opened}
+  - {name: tenure_years, type: INT, description: Whole years since the account was opened}
+  - {name: balance_myr, type: "DECIMAL(18,2)", description: End-of-day ledger balance in MYR (hidden from AI agents)}
+
+agent:
+  max_rows: 50
+  allowed_aggregations: [count, sum, avg, min, max]
+  usage: Default product for any analysis, counts, segment or regional breakdowns.

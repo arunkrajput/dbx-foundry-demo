@@ -1,0 +1,43 @@
+# SILVER · REFERENCE data product
+# Conformed branch master data. Other products validate and enrich against it.
+product:
+  id: reference.ref_branch
+  name: ref_branch
+  domain: reference
+  layer: silver
+  product_type: reference
+  version: 1.0.0
+  status: active
+  owner: branch-operations@bank.example
+  description: >
+    Master list of bank branches with name, region and state. One row per branch code.
+    Inactive branches are kept with active = false so historical accounts still resolve.
+  upstreams: [onprem.branch_master.extract]
+  inputs: []
+
+source:
+  landing_path: /Volumes/dp_dev/staging/landing/ref_branch/
+  format: csv
+  file_pattern: "ref_branch_*.csv"
+
+output:
+  table: dp_dev.silver.ref_branch
+  primary_key: branch_code
+  storage: typed
+
+sla:
+  freshness_hours: 720          # reference data changes rarely: 30 days
+  min_valid_ratio: 1.0          # reference data must be fully clean
+
+schema:
+  - {name: branch_code, type: STRING, required: true, filterable: true, pattern: '^[A-Z]{2}\d{2}$', description: Branch code, e.g. KL01}
+  - {name: branch_name, type: STRING, required: true, description: Branch display name}
+  - {name: region, type: STRING, required: true, filterable: true, allowed_values: [Central, Northern, Southern, East Coast, East Malaysia], description: Business region}
+  - {name: state, type: STRING, required: true, filterable: true, description: Malaysian state}
+  - {name: active, type: BOOLEAN, required: true, filterable: true, description: Whether the branch is operating}
+  - {name: effective_from, type: DATE, required: true, description: Date this record became valid}
+
+agent:
+  max_rows: 50
+  allowed_aggregations: [count]
+  usage: Look up what a branch code means, its region or whether it is active.
